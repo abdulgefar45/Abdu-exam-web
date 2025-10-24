@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIT Physiology Quiz</title>
+    <!-- Load Tailwind CSS for styling and responsiveness -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define Inter font and ensure good touch performance */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eef2ff; /* Light indigo background */
+            touch-action: manipulation;
+        }
+        .option-button:disabled {
+            cursor: default;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+<div id="app" class="w-full max-w-xl bg-white rounded-2xl shadow-2xl p-6 md:p-8 relative">
+    
+    <h1 class="text-3xl font-extrabold text-indigo-800 text-center mb-6 pb-2 border-b-4 border-indigo-100">
+        GIT Physiology Quiz
+    </h1>
+
+    <!-- Score and Progress -->
+    <div id="score-container" class="flex justify-between items-center text-sm font-medium text-gray-600 mb-4 bg-gray-50 p-3 rounded-lg">
+        <span id="score-display" class="font-bold text-lg text-green-700">Score: 0</span>
+        <span id="progress-display" class="font-medium text-gray-500">Question 1/30</span>
+    </div>
+
+    <!-- Quiz Area -->
+    <div id="quiz-area">
+        <div id="question-card" class="bg-indigo-50 p-5 rounded-xl mb-6 shadow-inner border-l-4 border-indigo-500">
+            <p id="question-text" class="text-xl font-semibold text-gray-900 leading-relaxed">Loading Question...</p>
+        </div>
+
+        <!-- Options Container -->
+        <div id="options-container" class="space-y-4 mb-6">
+            <!-- Options will be injected here -->
+        </div>
+
+        <!-- Feedback and Explanation Area -->
+        <div id="feedback-area" class="mt-4 hidden p-4 rounded-xl transition-all duration-300 shadow-md">
+            <p id="feedback-text" class="font-bold text-lg mb-2"></p>
+            <p id="explanation-text" class="text-sm text-gray-700 leading-snug"></p>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="controls" class="flex flex-col space-y-3 mt-6">
+        <button id="submit-button" onclick="handleSubmit()"
+                class="w-full py-3 px-6 bg-indigo-600 text-white font-semibold rounded-xl shadow-lg hover:bg-indigo-700 transition duration-150 transform hover:scale-[1.01] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-indigo-500/50">
+            Submit Answer
+        </button>
+        <button id="next-button" onclick="nextQuestion()" disabled
+                class="w-full py-3 px-6 bg-gray-400 text-white font-semibold rounded-xl shadow-md transition duration-150 active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-gray-300/50 hidden">
+            Next Question
+        </button>
+        <button id="restart-button" onclick="resetQuiz()"
+                class="w-full py-3 px-6 bg-green-600 text-white font-semibold rounded-xl shadow-lg hover:bg-green-700 transition duration-150 transform hover:scale-[1.01] active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-green-500/50 hidden">
+            Restart Quiz
+        </button>
+    </div>
+
+    <!-- Results Modal (Initially hidden) -->
+    <div id="results-modal" class="hidden absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center p-8 rounded-2xl z-10">
+        <h2 class="text-4xl font-extrabold text-indigo-800 mb-4">Quiz Complete!</h2>
+        <p class="text-2xl font-semibold text-gray-700 mb-8">Final Score: <span id="final-score" class="text-green-600 font-extrabold"></span>/<span id="total-questions"></span></p>
+        <button onclick="resetQuiz()" class="py-3 px-8 bg-indigo-600 text-white font-semibold rounded-full shadow-xl hover:bg-indigo-700 transition duration-150 active:scale-[0.98]">
+            Review & Restart
+        </button>
+    </div>
+</div>
+
+<script>
+    // --- QUIZ DATA (Converted from Dart) ---
+    const quizData = [
+        {
+            question: 'Which of the following is not an accessory organ of the digestive system?',
+            options: ['Liver', 'Pancreas', 'Gallbladder', 'Esophagus'],
+            correctAnswerIndex: 3,
+            explanation: 'Accessory organs assist in digestion but food does not pass through them. The esophagus is part of the alimentary canal.',
+        },
+        {
+            question: 'Which layer of the gastrointestinal wall contains the Auerbach’s (myenteric) plexus?',
+            options: ['Between submucosa and circular muscle', 'Between circular and longitudinal muscle', 'Between mucosa and submucosa', 'In the serosal layer'],
+            correctAnswerIndex: 1,
+            explanation: 'The myenteric plexus is responsible for regulating gut motility between these two muscle layers.',
+        },
+        {
+            question: 'The primary function of the muscularis mucosae is:',
+            options: ['Secrete digestive enzymes', 'Change the epithelial layer by contraction', 'Protect against infection', 'Store absorbed nutrients'],
+            correctAnswerIndex: 1,
+            explanation: 'The muscularis mucosae causes local movements of the mucosa to enhance absorption and secretion.',
+        },
+        {
+            question: 'The four major activities of the digestive tract include all except:',
+            options: ['Motility', 'Secretion', 'Digestion', 'Respiration'],
+            correctAnswerIndex: 3,
+            explanation: 'Respiration is a function of the respiratory system, not the digestive tract.',
+        },
+        {
+            question: 'The small intestine is mainly responsible for:',
+            options: ['Mixing food only', 'Absorption of nutrients', 'Water reabsorption only', 'Protein storage'],
+            correctAnswerIndex: 1,
+            explanation: 'While other processes occur, the small intestine is the primary site for nutrient absorption.',
+        },
+        {
+            question: 'The intrinsic nervous system of the GIT is also called:',
+            options: ['Somatic nervous system', 'Enteric nervous system', 'Parasympathetic system', 'Visceral motor system'],
+            correctAnswerIndex: 1,
+            explanation: 'The ENS is often called the "brain of the gut" and operates independently from the CNS.',
+        },
+        {
+            question: 'The submucosal (Meissner’s) plexus mainly regulates:',
+            options: ['Motility of longitudinal muscle', 'Absorption and secretion', 'Hormonal release', 'Blood pressure'],
+            correctAnswerIndex: 1,
+            explanation: 'Meissner’s plexus controls local glandular secretions and mucosal movements.',
+        },
+        {
+            question: 'Which neurotransmitter mediates receptive relaxation of the stomach?',
+            options: ['Acetylcholine', 'Norepinephrine', 'Vasoactive intestinal peptide (VIP)', 'Dopamine'],
+            correctAnswerIndex: 2,
+            explanation: 'VIP and nitric oxide are key inhibitory neurotransmitters in gut relaxation, including receptive relaxation.',
+        },
+        {
+            question: 'The vagovagal reflex involves:',
+            options: ['Only sympathetic fibers', 'Both afferent and efferent limbs in the vagus nerve', 'Only spinal reflexes', 'Cerebellar control'],
+            correctAnswerIndex: 1,
+            explanation: 'A vagovagal reflex sends sensory information to the brainstem via the vagus nerve and motor commands back via the vagus nerve.',
+        },
+        {
+            question: 'Sympathetic stimulation of the GIT results in:',
+            options: ['Increased motility', 'Increased secretion', 'Decreased motility and secretion', 'Increased blood flow'],
+            correctAnswerIndex: 2,
+            explanation: 'The sympathetic nervous system generally inhibits GI activity, preparing the body for "fight or flight".',
+        },
+        {
+            question: 'CCK (cholecystokinin) is secreted by which cells?',
+            options: ['G-cells', 'I-cells', 'K-cells', 'S-cells'],
+            correctAnswerIndex: 1,
+            explanation: 'I-cells in the duodenum and jejunum release CCK in response to fatty acids and amino acids.',
+        },
+        {
+            question: 'The main function of CCK is:',
+            options: ['Stimulate gastric acid secretion', 'Promote fat digestion and absorption', 'Increase gastric emptying', 'Decrease bile flow'],
+            correctAnswerIndex: 1,
+            explanation: 'CCK stimulates pancreatic enzyme secretion and gallbladder contraction, both crucial for fat digestion.',
+        },
+        {
+            question: 'Secretin is secreted in response to:',
+            options: ['Fat in the stomach', 'Acid in the duodenum', 'Carbohydrates in the jejunum', 'Peptides in the colon'],
+            correctAnswerIndex: 1,
+            explanation: 'Secretin is released by S-cells in response to acidic chyme entering the duodenum, stimulating bicarbonate secretion.',
+        },
+        {
+            question: 'The major function of GIP (Glucose-dependent insulinotropic peptide) is:',
+            options: ['Inhibit insulin release', 'Stimulate glucagon', 'Stimulate insulin secretion', 'Stimulate gastric acid secretion'],
+            correctAnswerIndex: 2,
+            explanation: 'GIP enhances insulin release from pancreatic beta cells in response to glucose, especially after an oral glucose load.',
+        },
+        {
+            question: 'The satiety center is located in the:',
+            options: ['Lateral hypothalamic area', 'Ventromedial nucleus', 'Arcuate nucleus', 'Medulla oblongata'],
+            correctAnswerIndex: 1,
+            explanation: 'The ventromedial nucleus of the hypothalamus is traditionally associated with satiety (feeling full).',
+        },
+        {
+            question: 'Ghrelin acts as:',
+            options: ['Appetite inhibitor', 'Appetite stimulator', 'Digestive enzyme', 'Hormone that reduces fat absorption'],
+            correctAnswerIndex: 1,
+            explanation: 'Ghrelin, often called the "hunger hormone," is produced mainly by the stomach and stimulates appetite.',
+        },
+        {
+            question: 'Slow waves in GI smooth muscle are generated by:',
+            options: ['Smooth muscle fibers', 'Interstitial cells of Cajal', 'Parasympathetic neurons', 'Skeletal muscle'],
+            correctAnswerIndex: 1,
+            explanation: 'Interstitial cells of Cajal act as pacemakers for GI smooth muscle contractions, generating slow waves.',
+        },
+        {
+            question: 'Frequency of slow waves is highest in:',
+            options: ['Stomach', 'Ileum', 'Duodenum', 'Colon'],
+            correctAnswerIndex: 2,
+            explanation: 'The duodenum has the highest frequency of slow waves (11-12 waves/min), facilitating rapid mixing and propulsion.',
+        },
+        {
+            question: 'Receptive relaxation of the stomach occurs when:',
+            options: ['The lower esophageal sphincter contracts', 'The lower esophageal sphincter relaxes', 'Food enters the small intestine', 'CCK is inhibited'],
+            correctAnswerIndex: 1,
+            explanation: 'Receptive relaxation is the stomach\'s ability to expand to accommodate food without increasing intragastric pressure, triggered by LES relaxation during swallowing.',
+        },
+        {
+            question: 'Motilin regulates:',
+            options: ['Gastric acid secretion', 'Migrating myoelectric complexes', 'Pancreatic bicarbonate secretion', 'Saliva production'],
+            correctAnswerIndex: 1,
+            explanation: 'Motilin stimulates migrating myoelectric complexes (MMCs), which are waves of electromechanical activity that sweep food remnants through the GI tract during fasting.',
+        },
+        {
+            question: 'The presence of fat in the duodenum delays gastric emptying mainly by:',
+            options: ['Stimulating secretin', 'Stimulating CCK', 'Inhibiting GIP', 'Stimulating motilin'],
+            correctAnswerIndex: 1,
+            explanation: 'Fat in the duodenum stimulates CCK, which slows gastric emptying to allow more time for fat digestion.',
+        },
+        {
+            question: 'The gastrocolic reflex increases:',
+            options: ['Secretion of saliva', 'Motility of the colon', 'Bile secretion', 'Esophageal relaxation'],
+            correctAnswerIndex: 1,
+            explanation: 'The gastrocolic reflex is a physiological reflex that controls the motility, or peristalsis, of the gastrointestinal tract.',
+        },
+        {
+            question: 'The rectosphincteric reflex causes:',
+            options: ['Contraction of internal sphincter', 'Relaxation of internal sphincter', 'Contraction of external sphincter', 'Relaxation of stomach muscles'],
+            correctAnswerIndex: 1,
+            explanation: 'Distension of the rectum triggers the rectosphincteric reflex, which causes relaxation of the internal anal sphincter, promoting defecation.',
+        },
+        {
+            question: 'The vomiting reflex is coordinated in the:',
+            options: ['Hypothalamus', 'Medulla oblongata', 'Spinal cord', 'Cerebral cortex'],
+            correctAnswerIndex: 1,
+            explanation: 'The vomiting center, located in the medulla oblongata, coordinates the complex actions of vomiting.',
+        },
+        {
+            question: 'Saliva is initially isotonic but becomes hypotonic due to:',
+            options: ['Reabsorption of ions in ducts', 'Water secretion by ducts', 'Protein denaturation', 'Enzyme hydrolysis'],
+            correctAnswerIndex: 0,
+            explanation: 'Salivary ducts reabsorb $Na^+$ and $Cl^-$ more than they secrete $K^+$ and $HCO_3^-$, and they are relatively impermeable to water, leading to a hypotonic final product.',
+        },
+        {
+            question: 'Both sympathetic and parasympathetic nerves stimulate saliva secretion, but the dominant one is:',
+            options: ['Sympathetic', 'Parasympathetic'],
+            correctAnswerIndex: 1,
+            explanation: 'Parasympathetic stimulation produces a large volume of watery saliva, while sympathetic stimulation produces less, thicker saliva.',
+        },
+        {
+            question: 'Gastric acid secretion by parietal cells involves:',
+            options: ['Na+/K+ pump', 'H+/K+ ATPase', 'Ca2+ pump', 'Cl-/HCO3- exchanger only'],
+            correctAnswerIndex: 1,
+            explanation: 'The $H^+/K^+$ ATPase (proton pump) is the primary active transporter responsible for secreting $H^+$ into the stomach lumen.',
+        },
+        {
+            question: 'The alkaline tide after a meal is due to:',
+            options: ['Increased H+ secretion into blood', 'Increased $HCO_3^-$ absorption into blood', 'Decreased gastric acid secretion', 'Decreased bicarbonate formation'],
+            correctAnswerIndex: 1,
+            explanation: 'As parietal cells secrete $H^+$ into the stomach, $HCO_3^-$ is generated and absorbed into the blood, making it transiently more alkaline.',
+        },
+        {
+            question: 'Intrinsic factor is essential for absorption of:',
+            options: ['Vitamin D', 'Vitamin B12', 'Vitamin K', 'Vitamin C'],
+            correctAnswerIndex: 1,
+            explanation: 'Intrinsic factor, secreted by parietal cells, binds to Vitamin $B_{12}$, allowing its absorption in the ileum.',
+        },
+        {
+            question: 'Bile salts assist in:',
+            options: ['Protein digestion', 'Emulsification and absorption of lipids', 'Vitamin synthesis', 'Bicarbonate secretion'],
+            correctAnswerIndex: 1,
+            explanation: 'Bile salts emulsify dietary fats into smaller droplets, increasing surface area for lipase action and forming micelles for absorption.',
+        },
+    ];
+
+    // --- STATE MANAGEMENT ---
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let isAnswered = false;
+    let selectedOption = null;
+
+    const elements = {
+        questionText: document.getElementById('question-text'),
+        optionsContainer: document.getElementById('options-container'),
+        feedbackArea: document.getElementById('feedback-area'),
+        feedbackText: document.getElementById('feedback-text'),
+        explanationText: document.getElementById('explanation-text'),
+        submitButton: document.getElementById('submit-button'),
+        nextButton: document.getElementById('next-button'),
+        restartButton: document.getElementById('restart-button'),
+        scoreDisplay: document.getElementById('score-display'),
+        progressDisplay: document.getElementById('progress-display'),
+        resultsModal: document.getElementById('results-modal'),
+        finalScore: document.getElementById('final-score'),
+        totalQuestions: document.getElementById('total-questions'),
+    };
+
+    // --- UTILITIES ---
+    function getOptionPrefix(index) {
+        return String.fromCharCode('A'.charCodeAt(0) + index);
+    }
+
+    // --- RENDERING FUNCTIONS ---
+    function updateProgress() {
+        elements.scoreDisplay.textContent = `Score: ${score}`;
+        elements.progressDisplay.textContent = `Question ${currentQuestionIndex + 1}/${quizData.length}`;
+    }
+
+    function renderQuestion() {
+        if (currentQuestionIndex >= quizData.length) {
+            showResults();
+            return;
+        }
+
+        const currentQuestion = quizData[currentQuestionIndex];
+        
+        // Reset UI state
+        elements.questionText.innerHTML = currentQuestion.question; // Use innerHTML for math formatting
+        elements.optionsContainer.innerHTML = '';
+        elements.feedbackArea.classList.add('hidden');
+        elements.feedbackArea.classList.remove('bg-green-100', 'bg-red-100', 'border-green-300', 'border-red-300');
+        elements.submitButton.classList.remove('hidden');
+        elements.nextButton.classList.add('hidden');
+        elements.submitButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+
+        isAnswered = false;
+        selectedOption = null;
+        
+        // Render options buttons
+        currentQuestion.options.forEach((optionText, index) => {
+            const button = document.createElement('button');
+            button.innerHTML = `${getOptionPrefix(index)}. ${optionText}`; // Use innerHTML for math formatting
+            button.dataset.index = index;
+            button.onclick = () => selectOption(button);
+            
+            // Base styling
+            button.className = 'option-button w-full text-left p-4 rounded-xl bg-gray-100 text-gray-800 hover:bg-indigo-100 focus:outline-none transition duration-150 shadow-md active:scale-[0.99] border-2 border-transparent';
+            elements.optionsContainer.appendChild(button);
+        });
+
+        updateProgress();
+    }
+
+    function selectOption(button) {
+        if (isAnswered) return;
+
+        // Deselect previous option
+        if (selectedOption) {
+            selectedOption.classList.remove('bg-indigo-300', 'ring-4', 'ring-indigo-400', 'border-indigo-600', 'font-semibold');
+            selectedOption.classList.add('bg-gray-100', 'hover:bg-indigo-100');
+        }
+
+        // Select new option
+        selectedOption = button;
+        selectedOption.classList.remove('bg-gray-100', 'hover:bg-indigo-100');
+        selectedOption.classList.add('bg-indigo-300', 'ring-4', 'ring-indigo-400', 'border-indigo-600', 'font-semibold');
+    }
+
+    // --- LOGIC FUNCTIONS ---
+    function handleSubmit() {
+        if (isAnswered) return;
+
+        // Check if an option is selected
+        if (!selectedOption) {
+            // Using a temporary class for visual feedback instead of alert()
+            elements.submitButton.classList.add('bg-red-500');
+            setTimeout(() => {
+                elements.submitButton.classList.remove('bg-red-500');
+            }, 500);
+            return;
+        }
+
+        isAnswered = true;
+        const selectedIndex = parseInt(selectedOption.dataset.index);
+        const currentQuestion = quizData[currentQuestionIndex];
+        const correctIndex = currentQuestion.correctAnswerIndex;
+        
+        elements.submitButton.classList.add('hidden');
+        elements.nextButton.classList.remove('hidden');
+        
+        // Show feedback area
+        elements.feedbackArea.classList.remove('hidden');
+        
+        if (selectedIndex === correctIndex) {
+            score++;
+            elements.feedbackArea.classList.add('bg-green-100', 'border-green-300');
+            elements.feedbackText.textContent = "✅ Correct! Well done.";
+            elements.feedbackText.classList.remove('text-red-700');
+            elements.feedbackText.classList.add('text-green-700');
+        } else {
+            elements.feedbackArea.classList.add('bg-red-100', 'border-red-300');
+            elements.feedbackText.textContent = "❌ Incorrect. Here is the breakdown:";
+            elements.feedbackText.classList.remove('text-green-700');
+            elements.feedbackText.classList.add('text-red-700');
+        }
+
+        // Show explanation (use innerHTML for math formatting)
+        elements.explanationText.innerHTML = currentQuestion.explanation;
+
+        // Highlight correct and incorrect answers
+        Array.from(elements.optionsContainer.children).forEach(button => {
+            const index = parseInt(button.dataset.index);
+            button.disabled = true; // Disable further clicking
+
+            // Remove selection highlight classes
+            button.classList.remove('bg-indigo-300', 'ring-4', 'ring-indigo-400', 'border-indigo-600', 'font-semibold');
+
+            if (index === correctIndex) {
+                // Correct answer
+                button.classList.remove('bg-gray-100', 'hover:bg-indigo-100');
+                button.classList.add('bg-green-200', 'font-bold', 'border-green-500', 'text-green-900');
+            } else if (index === selectedIndex && selectedIndex !== correctIndex) {
+                // Selected but wrong answer
+                button.classList.remove('bg-gray-100', 'hover:bg-indigo-100');
+                button.classList.add('bg-red-200', 'font-bold', 'border-red-500', 'text-red-900');
+            } else {
+                // Unselected or other incorrect answers
+                button.classList.add('opacity-50', 'bg-gray-50');
+                button.classList.remove('bg-gray-100', 'hover:bg-indigo-100');
+            }
+        });
+        
+        updateProgress();
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizData.length) {
+            renderQuestion();
+        } else {
+            showResults();
+        }
+    }
+
+    function showResults() {
+        elements.finalScore.textContent = score;
+        elements.totalQuestions.textContent = quizData.length;
+        elements.resultsModal.classList.remove('hidden');
+    }
+
+    function resetQuiz() {
+        currentQuestionIndex = 0;
+        score = 0;
+        isAnswered = false;
+        selectedOption = null;
+
+        elements.resultsModal.classList.add('hidden');
+        renderQuestion();
+    }
+
+    // Start the quiz on load
+    window.onload = resetQuiz;
+
+</script>
+</body>
+</html>
+
